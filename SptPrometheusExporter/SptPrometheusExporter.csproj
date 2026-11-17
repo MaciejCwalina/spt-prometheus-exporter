@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>SptPrometheusExporter</AssemblyName>
+    <OutputType>Library</OutputType>
+    <RootNamespace>SptPrometheusExporter</RootNamespace>
+  </PropertyGroup>
+  <!--
+    This mod builds against the SPT server libraries. The upstream repository is expected
+    at ../server-csharp (see build.sh). Adjust ServerRepoDir if you keep it elsewhere.
+  -->
+  <PropertyGroup>
+    <ServerRepoDir Condition="'$(ServerRepoDir)' == ''">$(MSBuildThisFileDirectory)..\server-csharp</ServerRepoDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(ServerRepoDir)\Libraries\SPTushonka.Common\SPTushonka.Common.csproj" />
+    <ProjectReference Include="$(ServerRepoDir)\Libraries\SPTushonka.DI\SPTushonka.DI.csproj" />
+    <ProjectReference Include="$(ServerRepoDir)\Libraries\SPTushonka.Reflection\SPTushonka.Reflection.csproj" />
+    <ProjectReference Include="$(ServerRepoDir)\Libraries\SPTushonka.Server.Assets\SPTushonka.Server.Assets.csproj" />
+    <ProjectReference Include="$(ServerRepoDir)\Libraries\SPTushonka.Server.Core\SPTushonka.Server.Core.csproj" />
+    <ProjectReference Include="$(ServerRepoDir)\Libraries\SPTushonka.Server.Web\SPTushonka.Server.Web.csproj" />
+  </ItemGroup>
+</Project>
