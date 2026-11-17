@@ -72,6 +72,7 @@ The port can also be overridden with the `SPT_PROMETHEUS_PORT` environment varia
 | `spt_ws_disconnections_total{session}` | counter | Connections closed per session id |
 | `spt_ws_packets_received_total{session}` | counter | **Every message received from a player** (per session) |
 | `spt_ws_upgraded_connections_total` | counter | Kestrel WS upgrades |
+| `spt_session_info{session,username}` | gauge | Session id → player username mapping (value always 1); use with `group_left(username)` joins to show names in dashboards |
 
 **Packet loss semantics:** the EFT notifier protocol has no client acks, so true end-to-end
 loss is not observable server-side. What this mod measures:

@@ -55,6 +55,17 @@ public sealed class PrometheusMetrics
         "counter"
     );
 
+    /// <summary>
+    /// Info metric mapping session ids to player usernames (value always 1).
+    /// Used with group_left(username) joins so dashboards can show names instead of ids.
+    /// Kept after disconnects so historical series remain joinable.
+    /// </summary>
+    public Metric SessionInfo { get; } = new(
+        "spt_session_info",
+        "Mapping from session id to player username (value is always 1).",
+        "gauge"
+    );
+
     // --- Exceptions / logging -------------------------------------------------
 
     public Metric ExceptionsTotal { get; } = new(
@@ -151,6 +162,7 @@ public sealed class PrometheusMetrics
             WsDisconnectionsTotal,
             WsPacketsReceivedTotal,
             WsUpgradedConnectionsTotal,
+            SessionInfo,
             ExceptionsTotal,
             DotnetExceptionsTotal,
             LogEntriesTotal,

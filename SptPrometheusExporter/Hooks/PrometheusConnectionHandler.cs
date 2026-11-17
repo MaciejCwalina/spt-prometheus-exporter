@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using Microsoft.AspNetCore.Http;
 using SPTarkov.DI.Annotations;
+using SPTarkov.Server.Core.Helpers.Profile;
+using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Servers.Ws;
 using SptPrometheusExporter.Metrics;
 
@@ -14,7 +16,7 @@ namespace SptPrometheusExporter.Hooks;
 /// without modifying any server code.
 /// </summary>
 [Injectable(InjectionType.Singleton)]
-public sealed class PrometheusConnectionHandler(PrometheusMetrics metrics) : IWebSocketConnectionHandler
+public sealed class PrometheusConnectionHandler(PrometheusMetrics metrics, ProfileHelper profileHelper) : IWebSocketConnectionHandler
 {
     /// <summary>Open connections keyed by "sessionId:connectionReference".</summary>
     private readonly ConcurrentDictionary<string, byte> _openConnections = new();
@@ -34,10 +36,28 @@ public sealed class PrometheusConnectionHandler(PrometheusMetrics metrics) : IWe
         var sessionId = GetSessionId(context);
         _openConnections.TryAdd(MakeKey(sessionId, sessionIdContext), 0);
 
+        // Publish the session -> username mapping so dashboards can show names instead of ids.
+        metrics.SessionInfo.Set(LabelFormat.Build(("session", sessionId), ("username", ResolveUsername(sessionId))), 1);
+
         metrics.WsConnectionsTotal.Add(LabelFormat.Build(("session", sessionId)), 1);
         metrics.PlayersConnected.Set(LabelFormat.None, _openConnections.Count);
 
         return Task.CompletedTask;
+    }
+
+    private string ResolveUsername(string sessionId)
+    {
+        try
+        {
+            var profile = profileHelper.GetFullProfile(new MongoId(sessionId));
+
+            return string.IsNullOrWhiteSpace(profile.ProfileInfo?.Username) ? sessionId : profile.ProfileInfo.Username;
+        }
+        catch (Exception)
+        {
+            // Unknown session (no profile yet) - fall back to the raw id.
+            return sessionId;
+        }
     }
 
     public Task OnMessageAsync(byte[] rawData, WebSocketMessageType messageType, WebSocket ws, HttpContext context)
