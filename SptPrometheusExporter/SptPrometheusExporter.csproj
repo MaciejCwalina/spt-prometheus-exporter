@@ -10,10 +10,10 @@
   </PropertyGroup>
   <!--
     This mod builds against the SPT server libraries. The upstream repository is expected
-    at ../server-csharp (see build.sh). Adjust ServerRepoDir if you keep it elsewhere.
+    next to this repository, at ../server-csharp relative to the repo root (see build.sh). Adjust ServerRepoDir if you keep it elsewhere.
   -->
   <PropertyGroup>
-    <ServerRepoDir Condition="'$(ServerRepoDir)' == ''">$(MSBuildThisFileDirectory)..\server-csharp</ServerRepoDir>
+    <ServerRepoDir Condition="'$(ServerRepoDir)' == ''">$(MSBuildThisFileDirectory)..\..\server-csharp</ServerRepoDir>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="$(ServerRepoDir)\Libraries\SPTushonka.Common\SPTushonka.Common.csproj" />

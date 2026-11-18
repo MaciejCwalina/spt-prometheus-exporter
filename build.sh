@@ -18,7 +18,7 @@ if [ ! -d "$SERVER_REPO/Libraries" ]; then
 fi
 
 echo "Building mod (configuration: $CONFIGURATION)..."
-dotnet build "$SCRIPT_DIR/SptPrometheusExporter/SptPrometheusExporter.csproj" -c "$CONFIGURATION"
+dotnet build "$SCRIPT_DIR/SptPrometheusExporter/SptPrometheusExporter.csproj" -c "$CONFIGURATION" -p:ServerRepoDir="$SERVER_REPO"
 
 MOD_DLL="$SCRIPT_DIR/SptPrometheusExporter/bin/$CONFIGURATION/net10.0/SptPrometheusExporter.dll"
 DEST_DIR="$SERVER_REPO/SPTushonka.Server/bin/$CONFIGURATION/net10.0/user/mods/SptPrometheusExporter"
