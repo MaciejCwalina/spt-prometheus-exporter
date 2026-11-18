@@ -103,16 +103,10 @@ public sealed class PrometheusMetrics
         "counter"
     );
 
-    public Metric HttpRequestDurationSum { get; } = new(
-        "spt_http_request_duration_seconds_sum",
-        "Cumulative time spent processing HTTP requests in seconds.",
-        "counter"
-    );
-
-    public Metric HttpRequestDurationCount { get; } = new(
-        "spt_http_request_duration_seconds_count",
-        "Number of HTTP requests with a measured latency.",
-        "counter"
+    public Histogram HttpRequestDuration { get; } = new(
+        "spt_http_request_duration_seconds",
+        "Time spent processing HTTP requests in seconds, grouped by method, protocol, status code and route.",
+        Histogram.DefaultSecondsBuckets
     );
 
     // --- Kestrel ----------------------------------------------------------------
@@ -151,7 +145,7 @@ public sealed class PrometheusMetrics
         "counter"
     );
 
-    private readonly Metric[] _all;
+    private readonly IMetricFamily[] _all;
 
     public PrometheusMetrics()
     {
@@ -170,8 +164,7 @@ public sealed class PrometheusMetrics
             LogEntriesTotal,
             UnhandledExceptionsTotal,
             HttpRequestsTotal,
-            HttpRequestDurationSum,
-            HttpRequestDurationCount,
+            HttpRequestDuration,
             KestrelActiveConnections,
             KestrelQueuedRequests,
             ProcessMemoryBytes,
@@ -198,7 +191,7 @@ public sealed class PrometheusMetrics
         var builder = new StringBuilder(64 * 1024);
         foreach (var metric in _all)
         {
-            LabelFormat.RenderFamily(builder, metric);
+            metric.Render(builder);
         }
 
         return builder.ToString();

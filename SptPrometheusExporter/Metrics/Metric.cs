@@ -4,12 +4,20 @@ using System.Text;
 
 namespace SptPrometheusExporter.Metrics;
 
+/// <summary>A metric family that can render itself in the Prometheus text exposition format.</summary>
+public interface IMetricFamily
+{
+    string Name { get; }
+
+    void Render(StringBuilder builder);
+}
+
 /// <summary>
 /// A single Prometheus metric family (counter or gauge) with zero or more label dimensions.
 /// Thread-safe; all series live in one concurrent dictionary keyed by their rendered label string,
 /// and every read or write of a series value happens under that series' lock.
 /// </summary>
-public sealed class Metric
+public sealed class Metric : IMetricFamily
 {
     private sealed class SeriesBox
     {
@@ -90,6 +98,11 @@ public sealed class Metric
         }
 
         return snapshot;
+    }
+
+    public void Render(StringBuilder builder)
+    {
+        LabelFormat.RenderFamily(builder, this);
     }
 }
 

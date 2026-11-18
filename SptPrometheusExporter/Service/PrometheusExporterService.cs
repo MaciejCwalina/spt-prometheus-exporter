@@ -176,8 +176,7 @@ public sealed class PrometheusExporterService(
             // One measurement per completed HTTP request; the histogram sample is the duration.
             case "http.server.request.duration":
                 var requestLabels = BuildRequestLabels(tags);
-                currentMetrics.HttpRequestDurationSum.Add(requestLabels, value);
-                currentMetrics.HttpRequestDurationCount.Add(requestLabels, 1);
+                currentMetrics.HttpRequestDuration.Observe(requestLabels, value);
                 currentMetrics.HttpRequestsTotal.Add(requestLabels, 1);
                 break;
 

@@ -95,7 +95,7 @@ loss is not observable server-side. What this mod measures:
 | Metric | Type | Description |
 |---|---|---|
 | `spt_http_requests_total{method,protocol,status_code,route}` | counter | Request counts (route-based, bounded cardinality) |
-| `spt_http_request_duration_seconds_sum` / `_count` | counter | Latency sum/count (avg = sum/count) |
+| `spt_http_request_duration_seconds{method,protocol,status_code,route}` | histogram | Request latency (`_bucket{le}`, `_sum`, `_count`; buckets 5ms to 10s) |
 | `kestrel_active_connections` | gauge | Active Kestrel connections |
 | `kestrel_queued_requests` | gauge | Requests waiting in the Kestrel queue |
 
@@ -132,6 +132,9 @@ deriv(spt_ws_packets_received_total{session="..."}[5m]) == 0
 
 # Slow requests
 rate(spt_http_request_duration_seconds_sum[5m]) / rate(spt_http_request_duration_seconds_count[5m]) > 1
+
+# p95 request latency per route
+histogram_quantile(0.95, sum by (le, route) (rate(spt_http_request_duration_seconds_bucket[5m])))
 
 # Memory pressure
 process_memory_bytes > 25 * 1024^3
