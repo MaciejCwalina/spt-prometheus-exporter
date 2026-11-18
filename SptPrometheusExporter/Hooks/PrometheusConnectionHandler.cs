@@ -5,6 +5,7 @@ using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Helpers.Profile;
 using SPTarkov.Server.Core.Models.Common;
 using SPTarkov.Server.Core.Servers.Ws;
+using SptPrometheusExporter.Config;
 using SptPrometheusExporter.Metrics;
 
 namespace SptPrometheusExporter.Hooks;
@@ -16,7 +17,11 @@ namespace SptPrometheusExporter.Hooks;
 /// without modifying any server code.
 /// </summary>
 [Injectable(InjectionType.Singleton)]
-public sealed class PrometheusConnectionHandler(PrometheusMetrics metrics, ProfileHelper profileHelper) : IWebSocketConnectionHandler
+public sealed class PrometheusConnectionHandler(
+    PrometheusMetrics metrics,
+    ProfileHelper profileHelper,
+    PrometheusExporterConfig config
+) : IWebSocketConnectionHandler
 {
     /// <summary>Open connections keyed by "sessionId:connectionReference".</summary>
     private readonly ConcurrentDictionary<string, byte> _openConnections = new();
@@ -41,10 +46,13 @@ public sealed class PrometheusConnectionHandler(PrometheusMetrics metrics, Profi
             metrics.WebSocketConnections.Add(LabelFormat.None, 1);
         }
 
-        // Publish the session -> username mapping so dashboards can show names instead of ids.
-        metrics.SessionInfo.Set(LabelFormat.Build(("session", sessionId), ("username", ResolveUsername(sessionId))), 1);
+        if (config.PerSessionMetrics)
+        {
+            // Opt-in only: publish the session -> username mapping so dashboards can show names instead of ids.
+            metrics.SessionInfo.Set(LabelFormat.Build(("session", sessionId), ("username", ResolveUsername(sessionId))), 1);
+        }
 
-        metrics.WsConnectionsTotal.Add(LabelFormat.Build(("session", sessionId)), 1);
+        metrics.WsConnectionsTotal.Add(SessionLabels(sessionId), 1);
 
         return Task.CompletedTask;
     }
@@ -67,7 +75,7 @@ public sealed class PrometheusConnectionHandler(PrometheusMetrics metrics, Profi
     public Task OnMessageAsync(byte[] rawData, WebSocketMessageType messageType, WebSocket ws, HttpContext context)
     {
         var sessionId = GetSessionId(context);
-        metrics.WsPacketsReceivedTotal.Add(LabelFormat.Build(("session", sessionId)), 1);
+        metrics.WsPacketsReceivedTotal.Add(SessionLabels(sessionId), 1);
 
         return Task.CompletedTask;
     }
@@ -80,9 +88,15 @@ public sealed class PrometheusConnectionHandler(PrometheusMetrics metrics, Profi
             metrics.WebSocketConnections.Add(LabelFormat.None, -1);
         }
 
-        metrics.WsDisconnectionsTotal.Add(LabelFormat.Build(("session", sessionId)), 1);
+        metrics.WsDisconnectionsTotal.Add(SessionLabels(sessionId), 1);
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>Per-session label only when explicitly enabled; otherwise a single aggregate series (bounded cardinality).</summary>
+    private string SessionLabels(string sessionId)
+    {
+        return config.PerSessionMetrics ? LabelFormat.Build(("session", sessionId)) : LabelFormat.None;
     }
 
     private static string MakeKey(string sessionId, string sessionIdContext)

@@ -35,19 +35,19 @@ public sealed class PrometheusMetrics
 
     public Metric WsConnectionsTotal { get; } = new(
         "spt_ws_connections_total",
-        "Total websocket connections opened by players, grouped by session id.",
+        "Total websocket connections opened by players. Has a session label only when perSessionMetrics is enabled.",
         "counter"
     );
 
     public Metric WsDisconnectionsTotal { get; } = new(
         "spt_ws_disconnections_total",
-        "Total websocket connections closed by players, grouped by session id.",
+        "Total websocket connections closed by players. Has a session label only when perSessionMetrics is enabled.",
         "counter"
     );
 
     public Metric WsPacketsReceivedTotal { get; } = new(
         "spt_ws_packets_received_total",
-        "Total websocket messages received from players, grouped by session id.",
+        "Total websocket messages received from players. Has a session label only when perSessionMetrics is enabled.",
         "counter"
     );
 
@@ -60,11 +60,12 @@ public sealed class PrometheusMetrics
     /// <summary>
     /// Info metric mapping session ids to player usernames (value always 1).
     /// Used with group_left(username) joins so dashboards can show names instead of ids.
-    /// Kept after disconnects so historical series remain joinable.
+    /// Only published when perSessionMetrics is enabled (it exports usernames). Series are not
+    /// removed on disconnect (Metric has no delete), so they accumulate until the server restarts.
     /// </summary>
     public Metric SessionInfo { get; } = new(
         "spt_session_info",
-        "Mapping from session id to player username (value is always 1).",
+        "Mapping from session id to player username (value is always 1). Opt-in via perSessionMetrics; series persist until server restart.",
         "gauge"
     );
 

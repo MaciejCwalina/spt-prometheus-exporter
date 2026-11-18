@@ -19,6 +19,16 @@ public class PrometheusExporterConfig
 
     [JsonPropertyName("sampleIntervalSeconds")]
     public int SampleIntervalSeconds { get; set; } = 15;
+
+    /// <summary>
+    /// Opt-in. When false (default) websocket counters are exported as server-wide totals with no
+    /// session label and no usernames are exported. When true, spt_ws_connections_total,
+    /// spt_ws_disconnections_total and spt_ws_packets_received_total get a "session" label and
+    /// spt_session_info{session,username} is published. This exports player usernames and creates
+    /// series per session id that are kept until the server restarts (unbounded cardinality).
+    /// </summary>
+    [JsonPropertyName("perSessionMetrics")]
+    public bool PerSessionMetrics { get; set; } = false;
 }
 
 [Injectable(InjectionType.Singleton)]
