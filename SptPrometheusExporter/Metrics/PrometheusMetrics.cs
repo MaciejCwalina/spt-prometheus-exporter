@@ -135,7 +135,7 @@ public sealed class PrometheusMetrics
 
     public Metric ProcessThreads { get; } = new("process_threads", "Process thread count.", "gauge");
 
-    public Metric ProcessCpuSecondsTotal { get; } = new("process_cpu_seconds_total", "Process CPU time in seconds.", "counter");
+    public Metric ProcessCpuSecondsTotal { get; } = new("process_cpu_seconds_total", "Total user and system CPU time spent by the process in seconds.", "counter");
 
     public Metric ThreadPoolThreads { get; } = new("dotnet_thread_pool_threads", ".NET thread pool thread count.", "gauge");
 

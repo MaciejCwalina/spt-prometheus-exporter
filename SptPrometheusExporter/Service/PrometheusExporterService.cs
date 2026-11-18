@@ -188,24 +188,24 @@ public sealed class PrometheusExporterService(
                 );
                 break;
 
+            // Observable counters report the cumulative total on every observation, so Set (not Add) them.
             case "dotnet.gc.collections":
-                currentMetrics.GcCollectionsTotal.Add(
+                currentMetrics.GcCollectionsTotal.Set(
                     LabelFormat.Build(("generation", ReadTag(tags, "gc.heap.generation") ?? "unknown")),
                     value
                 );
                 break;
 
             case "dotnet.gc.pause.time":
-                currentMetrics.GcPauseTimeSecondsTotal.Add(LabelFormat.None, value);
+                currentMetrics.GcPauseTimeSecondsTotal.Set(LabelFormat.None, value);
                 break;
 
             case "dotnet.process.memory.working_set":
                 currentMetrics.ProcessMemoryBytes.Set(LabelFormat.None, value);
                 break;
 
-            case "dotnet.process.cpu.time":
-                currentMetrics.ProcessCpuSecondsTotal.Add(LabelFormat.None, value);
-                break;
+            // dotnet.process.cpu.time is deliberately not used: it reports one series per cpu.mode
+            // (user/system), while process_cpu_seconds_total is their sum. The sampler sets it instead.
 
             case "dotnet.thread_pool.thread.count":
                 currentMetrics.ThreadPoolThreads.Set(LabelFormat.None, value);
@@ -262,18 +262,32 @@ public sealed class PrometheusExporterService(
         CancellationToken cancellationToken
     )
     {
-        var process = Process.GetCurrentProcess();
+        using var process = Process.GetCurrentProcess();
         using var timer = new PeriodicTimer(interval);
+
+        void SampleOnce()
+        {
+            currentMetrics.UpdateUptime();
+
+            // Process caches its info after the first read; Refresh() makes Threads report the live count.
+            process.Refresh();
+            currentMetrics.ProcessThreads.Set(LabelFormat.None, process.Threads.Count);
+
+            // User + system CPU time, matching the standard process_cpu_seconds_total semantics.
+            currentMetrics.ProcessCpuSecondsTotal.Set(LabelFormat.None, Environment.CpuUsage.TotalTime.TotalSeconds);
+
+            // Observable instruments (gauges and cumulative counters) only report when asked.
+            meterListener.RecordObservableInstruments();
+        }
 
         try
         {
+            // Sample once up front so the first scrape does not see zeros for a whole interval.
+            SampleOnce();
+
             while (await timer.WaitForNextTickAsync(cancellationToken))
             {
-                currentMetrics.UpdateUptime();
-                currentMetrics.ProcessThreads.Set(LabelFormat.None, process.Threads.Count);
-
-                // Observable instruments (gauges) only report when asked.
-                meterListener.RecordObservableInstruments();
+                SampleOnce();
             }
         }
         catch (OperationCanceledException)
