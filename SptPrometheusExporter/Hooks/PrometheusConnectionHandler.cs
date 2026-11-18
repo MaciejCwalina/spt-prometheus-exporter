@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using Microsoft.AspNetCore.Http;
+using SPTarkov.Common.Models.Logging;
 using SPTarkov.DI.Annotations;
 using SPTarkov.Server.Core.Helpers.Profile;
 using SPTarkov.Server.Core.Models.Common;
@@ -20,7 +21,8 @@ namespace SptPrometheusExporter.Hooks;
 public sealed class PrometheusConnectionHandler(
     PrometheusMetrics metrics,
     ProfileHelper profileHelper,
-    PrometheusExporterConfig config
+    PrometheusExporterConfig config,
+    ISptLogger<PrometheusConnectionHandler> logger
 ) : IWebSocketConnectionHandler
 {
     /// <summary>Open connections keyed by "sessionId:connectionReference".</summary>
@@ -65,9 +67,10 @@ public sealed class PrometheusConnectionHandler(
 
             return string.IsNullOrWhiteSpace(profile.ProfileInfo?.Username) ? sessionId : profile.ProfileInfo.Username;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
             // Unknown session (no profile yet) - fall back to the raw id.
+            logger.Debug($"[Prometheus] Could not resolve username for session {sessionId}, using the session id: {exception.GetType().Name}: {exception.Message}");
             return sessionId;
         }
     }
