@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- xunit.v3 runs on Microsoft.Testing.Platform; global.json opts dotnet test into it. -->
+    <RootNamespace>SptPrometheusExporter.Tests</RootNamespace>
+  </PropertyGroup>
+  <!--
+    The metric primitives have no SPT dependencies, so they are compiled straight into the test
+    assembly instead of referencing SptPrometheusExporter.csproj. That keeps the tests runnable
+    without a checkout of the SPT server repository (see README, "Testing").
+  -->
+  <ItemGroup>
+    <Compile Include="..\SptPrometheusExporter\Metrics\Metric.cs" Link="Metrics\Metric.cs" />
+    <Compile Include="..\SptPrometheusExporter\Metrics\Histogram.cs" Link="Metrics\Histogram.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" Version="4.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>
