@@ -53,6 +53,7 @@ public sealed class PrometheusExporterService(
         catch (HttpListenerException e)
         {
             logger.Error($"Prometheus exporter failed to bind http://{config.BindAddress}:{port} - {e.Message}");
+            listener.Close();
             return;
         }
 
@@ -60,6 +61,9 @@ public sealed class PrometheusExporterService(
 
         using var meterListener = CreateMeterListener(metrics);
         var samplerTask = SampleProcessMetricsAsync(metrics, meterListener, TimeSpan.FromSeconds(config.SampleIntervalSeconds), stoppingToken);
+
+        // GetContextAsync() takes no token, so stopping the listener is what unblocks the accept loop on shutdown.
+        var stopRegistration = stoppingToken.Register(listener.Stop);
 
         try
         {
@@ -70,9 +74,14 @@ public sealed class PrometheusExporterService(
                 {
                     httpContext = await listener.GetContextAsync();
                 }
-                catch (HttpListenerException)
+                catch (Exception exception) when (exception is HttpListenerException or ObjectDisposedException or InvalidOperationException)
                 {
-                    break; // listener stopped during shutdown
+                    if (!stoppingToken.IsCancellationRequested)
+                    {
+                        logger.Error("Prometheus exporter listener stopped unexpectedly", exception);
+                    }
+
+                    break;
                 }
 
                 HandleRequest(httpContext, metrics);
@@ -80,7 +89,9 @@ public sealed class PrometheusExporterService(
         }
         finally
         {
-            listener.Stop();
+            // Dispose the registration first (waits for a running callback) so Stop() never races Close().
+            stopRegistration.Dispose();
+            listener.Close();
             await samplerTask;
         }
     }
