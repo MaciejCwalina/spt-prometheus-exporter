@@ -17,8 +17,6 @@ public sealed class PrometheusMetrics
 
     // --- Server lifecycle -----------------------------------------------------
 
-    public Metric Up { get; } = new("spt_up", "Whether the SPT server process is running (1) or not (0).", "gauge");
-
     public Metric UptimeSeconds { get; } = new("spt_uptime_seconds", "SPT server uptime in seconds.", "gauge");
 
     public Metric VersionInfo { get; } = new("spt_version_info", "SPT server version information (value is always 1).", "gauge");
@@ -154,7 +152,6 @@ public sealed class PrometheusMetrics
     {
         _all =
         [
-            Up,
             UptimeSeconds,
             VersionInfo,
             PlayersConnected,

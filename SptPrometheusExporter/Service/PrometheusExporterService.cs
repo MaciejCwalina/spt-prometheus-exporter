@@ -34,7 +34,6 @@ public sealed class PrometheusExporterService(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         metrics.SetVersion();
-        metrics.Up.Set(LabelFormat.None, 1);
         metrics.UpdateUptime();
 
         if (!config.Enabled)
