@@ -34,13 +34,17 @@ public sealed class PrometheusConnectionHandler(PrometheusMetrics metrics, Profi
     public Task OnConnectionAsync(WebSocket ws, HttpContext context, string sessionIdContext)
     {
         var sessionId = GetSessionId(context);
-        _openConnections.TryAdd(MakeKey(sessionId, sessionIdContext), 0);
+        // Adjust the gauge only when the dictionary actually changed. Metric.Add is atomic, so
+        // concurrent connects/closes cannot overwrite each other with a stale count.
+        if (_openConnections.TryAdd(MakeKey(sessionId, sessionIdContext), 0))
+        {
+            metrics.WebSocketConnections.Add(LabelFormat.None, 1);
+        }
 
         // Publish the session -> username mapping so dashboards can show names instead of ids.
         metrics.SessionInfo.Set(LabelFormat.Build(("session", sessionId), ("username", ResolveUsername(sessionId))), 1);
 
         metrics.WsConnectionsTotal.Add(LabelFormat.Build(("session", sessionId)), 1);
-        metrics.PlayersConnected.Set(LabelFormat.None, _openConnections.Count);
 
         return Task.CompletedTask;
     }
@@ -71,10 +75,12 @@ public sealed class PrometheusConnectionHandler(PrometheusMetrics metrics, Profi
     public Task OnCloseAsync(WebSocket ws, HttpContext context, string sessionIdContext)
     {
         var sessionId = GetSessionId(context);
-        _openConnections.TryRemove(MakeKey(sessionId, sessionIdContext), out _);
+        if (_openConnections.TryRemove(MakeKey(sessionId, sessionIdContext), out _))
+        {
+            metrics.WebSocketConnections.Add(LabelFormat.None, -1);
+        }
 
         metrics.WsDisconnectionsTotal.Add(LabelFormat.Build(("session", sessionId)), 1);
-        metrics.PlayersConnected.Set(LabelFormat.None, _openConnections.Count);
 
         return Task.CompletedTask;
     }

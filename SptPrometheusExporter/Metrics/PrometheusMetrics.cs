@@ -23,9 +23,13 @@ public sealed class PrometheusMetrics
 
     // --- Players / websocket --------------------------------------------------
 
-    public Metric PlayersConnected { get; } = new(
-        "spt_players_connected",
-        "Number of player websocket connections currently open on the notifier endpoint.",
+    /// <summary>
+    /// Open notifier websocket connections. This counts connections, not distinct players:
+    /// a player that reconnects before the old socket closes is briefly counted twice.
+    /// </summary>
+    public Metric WebSocketConnections { get; } = new(
+        "spt_websocket_connections",
+        "Number of websocket connections currently open on the player notifier endpoint (connections, not distinct players).",
         "gauge"
     );
 
@@ -154,7 +158,7 @@ public sealed class PrometheusMetrics
         [
             UptimeSeconds,
             VersionInfo,
-            PlayersConnected,
+            WebSocketConnections,
             WsConnectionsTotal,
             WsDisconnectionsTotal,
             WsPacketsReceivedTotal,
