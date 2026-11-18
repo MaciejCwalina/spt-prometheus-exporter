@@ -6,7 +6,8 @@ namespace SptPrometheusExporter.Metrics;
 
 /// <summary>
 /// A single Prometheus metric family (counter or gauge) with zero or more label dimensions.
-/// Thread-safe; all series live in one concurrent dictionary keyed by their rendered label string.
+/// Thread-safe; all series live in one concurrent dictionary keyed by their rendered label string,
+/// and every read or write of a series value happens under that series' lock.
 /// </summary>
 public sealed class Metric
 {
@@ -52,18 +53,30 @@ public sealed class Metric
 
     public double Get(string labels)
     {
-        return _series.TryGetValue(labels, out var box) ? box.Value : 0;
+        if (!_series.TryGetValue(labels, out var box))
+        {
+            return 0;
+        }
+
+        lock (box)
+        {
+            return box.Value;
+        }
     }
 
+    /// <summary>Copies every series value under its lock, so callers never iterate while a lock is held.</summary>
     public IEnumerable<KeyValuePair<string, double>> Snapshot()
     {
+        var snapshot = new List<KeyValuePair<string, double>>(_series.Count);
         foreach (var (labels, box) in _series)
         {
             lock (box)
             {
-                yield return new KeyValuePair<string, double>(labels, box.Value);
+                snapshot.Add(new KeyValuePair<string, double>(labels, box.Value));
             }
         }
+
+        return snapshot;
     }
 }
 
