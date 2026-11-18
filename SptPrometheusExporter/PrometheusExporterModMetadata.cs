@@ -24,7 +24,7 @@ public sealed class PrometheusExporterModMetadata : IModMetadata
 
     public Dictionary<string, Range>? ModDependencies { get; init; }
 
-    public string? Url { get; init; } = "https://github.com/SP-Tushonka/server-csharp";
+    public string? Url { get; init; } = "https://github.com/MaciejCwalina/spt-prometheus-exporter";
 
     public string License { get; init; } = "MIT";
 }
