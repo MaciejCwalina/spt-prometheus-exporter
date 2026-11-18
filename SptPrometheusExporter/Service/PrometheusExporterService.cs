@@ -281,8 +281,14 @@ public sealed class PrometheusExporterService(
                 currentMetrics.KestrelQueuedRequests.AddWithFloor(LabelFormat.None, value, 0);
                 break;
 
+            // Also an UpDownCounter (connections currently upgraded): +1 on upgrade, -1 when the socket
+            // closes. Only the increments are counted, so the counter is the total number of upgrades.
             case "kestrel.upgraded_connections":
-                currentMetrics.WsUpgradedConnectionsTotal.Add(LabelFormat.None, value);
+                if (value > 0)
+                {
+                    currentMetrics.WsUpgradedConnectionsTotal.Add(LabelFormat.None, value);
+                }
+
                 break;
         }
     }
