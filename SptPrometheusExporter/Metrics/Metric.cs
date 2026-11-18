@@ -51,6 +51,19 @@ public sealed class Metric
         }
     }
 
+    /// <summary>
+    /// Adds delta to the given series but never lets it drop below floor.
+    /// Used for gauges rebuilt from up/down deltas, where missed increments could otherwise push it negative.
+    /// </summary>
+    public void AddWithFloor(string labels, double delta, double floor)
+    {
+        var box = _series.GetOrAdd(labels, _ => new SeriesBox());
+        lock (box)
+        {
+            box.Value = Math.Max(floor, box.Value + delta);
+        }
+    }
+
     public double Get(string labels)
     {
         if (!_series.TryGetValue(labels, out var box))

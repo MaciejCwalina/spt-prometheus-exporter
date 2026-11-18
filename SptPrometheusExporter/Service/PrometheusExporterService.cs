@@ -211,13 +211,16 @@ public sealed class PrometheusExporterService(
                 currentMetrics.ThreadPoolThreads.Set(LabelFormat.None, value);
                 break;
 
-            // These instruments publish deltas (+/- changes), so accumulate them.
+            // These UpDownCounters publish deltas (+/- changes), and their current value cannot be read,
+            // so the gauge is rebuilt from deltas seen since this listener started. A connection opened
+            // before that and closed later would push it below the real value (even negative), so clamp
+            // at 0: it can undercount briefly but never goes negative, and self-corrects once idle.
             case "kestrel.active_connections":
-                currentMetrics.KestrelActiveConnections.Add(LabelFormat.None, value);
+                currentMetrics.KestrelActiveConnections.AddWithFloor(LabelFormat.None, value, 0);
                 break;
 
             case "kestrel.queued_requests":
-                currentMetrics.KestrelQueuedRequests.Add(LabelFormat.None, value);
+                currentMetrics.KestrelQueuedRequests.AddWithFloor(LabelFormat.None, value, 0);
                 break;
 
             case "kestrel.upgraded_connections":

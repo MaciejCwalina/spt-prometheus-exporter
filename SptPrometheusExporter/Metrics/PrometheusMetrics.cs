@@ -119,13 +119,13 @@ public sealed class PrometheusMetrics
 
     public Metric KestrelActiveConnections { get; } = new(
         "kestrel_active_connections",
-        "Kestrel connections currently active.",
+        "Kestrel connections currently active, counted from changes seen since the exporter started (connections opened earlier are not included).",
         "gauge"
     );
 
     public Metric KestrelQueuedRequests { get; } = new(
         "kestrel_queued_requests",
-        "Kestrel requests waiting in the queue.",
+        "Kestrel requests waiting in the queue, counted from changes seen since the exporter started.",
         "gauge"
     );
 
