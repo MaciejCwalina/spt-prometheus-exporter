@@ -84,7 +84,9 @@ public sealed class PrometheusExporterService(
                     break;
                 }
 
-                HandleRequest(httpContext, metrics);
+                // Serve off the accept loop so one slow client can't stall other scrapes.
+                // HandleRequestAsync observes all of its own exceptions.
+                _ = Task.Run(() => HandleRequestAsync(httpContext, metrics));
             }
         }
         finally
@@ -116,42 +118,88 @@ public sealed class PrometheusExporterService(
         return $"http://{host}:{port}/";
     }
 
-    private void HandleRequest(HttpListenerContext httpContext, PrometheusMetrics currentMetrics)
+    private async Task HandleRequestAsync(HttpListenerContext httpContext, PrometheusMetrics currentMetrics)
     {
+        var response = httpContext.Response;
+        var path = httpContext.Request.Url?.AbsolutePath ?? "/";
+        var succeeded = false;
+
         try
         {
-            var response = httpContext.Response;
-            var path = httpContext.Request.Url?.AbsolutePath ?? "/";
-
             switch (path)
             {
+                case "/metrics" or "/health" when httpContext.Request.HttpMethod != "GET":
+                    response.AddHeader("Allow", "GET");
+                    await WriteResponseAsync(response, HttpStatusCode.MethodNotAllowed, "text/plain", "method not allowed");
+                    break;
+
                 case "/metrics":
-                    WriteResponse(response, HttpStatusCode.OK, MetricsContentType, currentMetrics.Render());
+                    await WriteResponseAsync(response, HttpStatusCode.OK, MetricsContentType, currentMetrics.Render());
                     break;
 
                 case "/health":
-                    WriteResponse(response, HttpStatusCode.OK, "text/plain", "ok");
+                    await WriteResponseAsync(response, HttpStatusCode.OK, "text/plain", "ok");
                     break;
 
                 default:
-                    WriteResponse(response, HttpStatusCode.NotFound, "text/plain", "not found");
+                    await WriteResponseAsync(response, HttpStatusCode.NotFound, "text/plain", "not found");
                     break;
             }
+
+            succeeded = true;
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // Client may have gone away mid-write; nothing to do.
+            logger.Warning($"Prometheus exporter failed to serve {httpContext.Request.HttpMethod} {path}", exception);
+            succeeded = await TryWriteServerErrorAsync(response);
+        }
+        finally
+        {
+            CloseResponse(response, succeeded);
         }
     }
 
-    private static void WriteResponse(HttpListenerResponse response, HttpStatusCode statusCode, string contentType, string body)
+    private static async Task WriteResponseAsync(HttpListenerResponse response, HttpStatusCode statusCode, string contentType, string body)
     {
         response.StatusCode = (int)statusCode;
         response.ContentType = contentType;
         var bytes = Encoding.UTF8.GetBytes(body);
         response.ContentLength64 = bytes.Length;
-        response.OutputStream.Write(bytes, 0, bytes.Length);
-        response.Close();
+        await response.OutputStream.WriteAsync(bytes);
+    }
+
+    /// <summary>Returns a 500 if nothing has been sent yet; false when headers are already out (or the client is gone).</summary>
+    private static async Task<bool> TryWriteServerErrorAsync(HttpListenerResponse response)
+    {
+        try
+        {
+            // Throws InvalidOperationException once headers have been sent.
+            await WriteResponseAsync(response, HttpStatusCode.InternalServerError, "text/plain", "internal server error");
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Closes a completed response, or aborts the connection if it ended up half-written.</summary>
+    private static void CloseResponse(HttpListenerResponse response, bool completed)
+    {
+        try
+        {
+            if (completed)
+            {
+                response.Close();
+                return;
+            }
+        }
+        catch (Exception)
+        {
+            // Fall through to Abort() so the connection is still released.
+        }
+
+        response.Abort();
     }
 
     /// <summary>Subscribes to ASP.NET Core and .NET runtime meters and routes their instruments into our metrics.</summary>
