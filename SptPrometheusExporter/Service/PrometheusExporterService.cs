@@ -200,7 +200,7 @@ public sealed class PrometheusExporterService(
                 break;
 
             case "dotnet.process.memory.working_set":
-                currentMetrics.ProcessMemoryBytes.Set(LabelFormat.None, value);
+                currentMetrics.ProcessResidentMemoryBytes.Set(LabelFormat.None, value);
                 break;
 
             // dotnet.process.cpu.time is deliberately not used: it reports one series per cpu.mode

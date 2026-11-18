@@ -102,7 +102,7 @@ loss is not observable server-side. What this mod measures:
 ### Process / runtime
 | Metric | Type | Description |
 |---|---|---|
-| `process_memory_bytes` | gauge | Working set |
+| `process_resident_memory_bytes` | gauge | Resident memory (working set) |
 | `process_threads` | gauge | Thread count |
 | `process_cpu_seconds_total` | counter | CPU time |
 | `dotnet_thread_pool_threads` | gauge | ThreadPool threads |
@@ -137,7 +137,7 @@ rate(spt_http_request_duration_seconds_sum[5m]) / rate(spt_http_request_duration
 histogram_quantile(0.95, sum by (le, route) (rate(spt_http_request_duration_seconds_bucket[5m])))
 
 # Memory pressure
-process_memory_bytes > 25 * 1024^3
+process_resident_memory_bytes > 25 * 1024^3
 ```
 
 ## Notes & limitations

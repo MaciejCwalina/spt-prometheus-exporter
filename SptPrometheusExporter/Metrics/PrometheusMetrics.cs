@@ -125,7 +125,11 @@ public sealed class PrometheusMetrics
 
     // --- Process / runtime (from .NET meters + sampling) ------------------------
 
-    public Metric ProcessMemoryBytes { get; } = new("process_memory_bytes", "Process working set size in bytes.", "gauge");
+    public Metric ProcessResidentMemoryBytes { get; } = new(
+        "process_resident_memory_bytes",
+        "Process resident memory in bytes (the .NET working set, which on Linux is the RSS).",
+        "gauge"
+    );
 
     public Metric ProcessThreads { get; } = new("process_threads", "Process thread count.", "gauge");
 
@@ -167,7 +171,7 @@ public sealed class PrometheusMetrics
             HttpRequestDuration,
             KestrelActiveConnections,
             KestrelQueuedRequests,
-            ProcessMemoryBytes,
+            ProcessResidentMemoryBytes,
             ProcessThreads,
             ProcessCpuSecondsTotal,
             ThreadPoolThreads,
