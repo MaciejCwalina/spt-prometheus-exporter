@@ -4,7 +4,10 @@ using System.Text;
 
 namespace SptPrometheusExporter.Metrics;
 
-/// <summary>A metric family that can render itself in the Prometheus text exposition format.</summary>
+/// <summary>
+/// A metric family that can render itself in the Prometheus text exposition format.
+/// Lines end with '\n' rather than Environment.NewLine: the format requires LF, and CRLF on Windows breaks parsing.
+/// </summary>
 public interface IMetricFamily
 {
     string Name { get; }
@@ -129,8 +132,8 @@ public static class LabelFormat
     /// <summary>Renders one full metric family in the Prometheus text exposition format.</summary>
     public static void RenderFamily(StringBuilder builder, Metric metric)
     {
-        builder.Append("# HELP ").Append(metric.Name).Append(' ').AppendLine(metric.Help);
-        builder.Append("# TYPE ").Append(metric.Name).Append(' ').AppendLine(metric.Type);
+        builder.Append("# HELP ").Append(metric.Name).Append(' ').Append(metric.Help).Append('\n');
+        builder.Append("# TYPE ").Append(metric.Name).Append(' ').Append(metric.Type).Append('\n');
         foreach (var (labels, value) in metric.Snapshot())
         {
             builder.Append(metric.Name);
@@ -141,7 +144,7 @@ public static class LabelFormat
 
             builder.Append(' ')
                 .Append(value.ToString("R", CultureInfo.InvariantCulture))
-                .AppendLine();
+                .Append('\n');
         }
     }
 }

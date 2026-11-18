@@ -58,8 +58,8 @@ public sealed class Histogram : IMetricFamily
 
     public void Render(StringBuilder builder)
     {
-        builder.Append("# HELP ").Append(Name).Append(' ').AppendLine(Help);
-        builder.Append("# TYPE ").Append(Name).AppendLine(" histogram");
+        builder.Append("# HELP ").Append(Name).Append(' ').Append(Help).Append('\n');
+        builder.Append("# TYPE ").Append(Name).Append(" histogram\n");
 
         foreach (var series in Snapshot())
         {
@@ -74,7 +74,7 @@ public sealed class Histogram : IMetricFamily
                 builder.Append(Name).Append("_bucket{")
                     .Append(labelPrefix).Append("le=\"").Append(upperBound).Append("\"} ")
                     .Append(cumulativeCount.ToString(CultureInfo.InvariantCulture))
-                    .AppendLine();
+                    .Append('\n');
             }
 
             AppendSample(builder, "_sum", series.Labels, FormatNumber(series.Sum));
@@ -105,7 +105,7 @@ public sealed class Histogram : IMetricFamily
             builder.Append('{').Append(labels).Append('}');
         }
 
-        builder.Append(' ').Append(value).AppendLine();
+        builder.Append(' ').Append(value).Append('\n');
     }
 
     private static string FormatNumber(double value)
